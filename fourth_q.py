@@ -19,6 +19,9 @@ qdf["Text"] = qdf["Text"].fillna("").astype(str)
 
 model = SentenceTransformer(MODEL_NAME)
 
+RUN_NAME = "FAISS"  
+
+
 def retrieve_one(query_text: str, k: int):
     q = model.encode([query_text], convert_to_numpy=True, normalize_embeddings=True).astype(np.float32)
     scores, idxs = index.search(q, k)
@@ -31,8 +34,10 @@ def retrieve_one(query_text: str, k: int):
             "score": float(score),
             "doc_id": r["doc_id"],
             "chunk_id": r["chunk_id"],
+            "content": r["chunk_text"],  
         })
     return rows
+
 
 for k in (20, 30, 50):
     out_rows = []
@@ -46,5 +51,17 @@ for k in (20, 30, 50):
             out_rows.append(h)
 
     out_df = pd.DataFrame(out_rows).sort_values(["query_id", "rank"], ascending=[True, True])
-    out_df.to_csv(f"results_k{k}.csv", index=False, encoding="utf-8")
+
+    # 1) CSV όπως το θες
+    cols = ["query_id", "rank", "doc_id", "content"]
+    if KEEP_QUERY_TEXT:
+        cols.append("query_text")
+    out_df[cols].to_csv(f"results_k{k}.csv", index=False, encoding="utf-8")
     print(f"Saved -> results_k{k}.csv  rows={len(out_df)}")
+
+
+    with open(f"results_k{k}.trec", "w", encoding="utf-8") as f:
+        for _, r in out_df.iterrows():
+            f.write(f'{r["query_id"]} Q0 {r["doc_id"]} {int(r["rank"])} {float(r["score"])} {RUN_NAME}\n')
+
+    print(f"Saved -> results_k{k}.trec")

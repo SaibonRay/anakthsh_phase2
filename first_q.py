@@ -2,10 +2,7 @@ import re
 import pandas as pd
 from transformers import AutoTokenizer
 
-
 df = pd.read_csv("documents.csv")  
-
-
 ID_COL = "ID"     
 BODY_COL = "Text"  
 
@@ -14,7 +11,7 @@ def safe_str(x):
         return ""
     return str(x)
 
-# Αν υπάρχει BODY_COL, το χρησιμοποιούμε. Αλλιώς ψάχνουμε μια πιθανή στήλη κειμένου.
+
 if BODY_COL in df.columns:
     df["full_text"] = df[BODY_COL].apply(safe_str)
 else:
