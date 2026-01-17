@@ -45,7 +45,7 @@ tokenizer_name = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
 tokenizer = AutoTokenizer.from_pretrained(tokenizer_name)
 
 MAX_TOKENS = 320     
-OVERLAP = 64        
+OVERLAP = 64         
 
 rows = []
 for i, r in df.iterrows():

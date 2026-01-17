@@ -9,7 +9,8 @@ CHUNKS_PATH = "documents_chunks.csv"
 QUERIES_PATH = "queries.csv"
 MODEL_NAME = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
 
-KEEP_QUERY_TEXT = False
+KEEP_QUERY_TEXT = False 
+ 
 
 index = faiss.read_index(INDEX_PATH)
 chunks_df = pd.read_csv(CHUNKS_PATH)
@@ -22,22 +23,49 @@ model = SentenceTransformer(MODEL_NAME)
 RUN_NAME = "FAISS"  
 
 
-def retrieve_one(query_text: str, k: int):
-    q = model.encode([query_text], convert_to_numpy=True, normalize_embeddings=True).astype(np.float32)
-    scores, idxs = index.search(q, k)
+def retrieve_one(query_text: str, k: int, overfetch: int = 200):
+    q = model.encode(
+        [query_text],
+        convert_to_numpy=True,
+        normalize_embeddings=True
+    ).astype(np.float32)
 
-    rows = []
-    for rank, (score, i) in enumerate(zip(scores[0], idxs[0]), start=1):
+    scores, idxs = index.search(q, overfetch)
+
+    doc_best = {}
+
+    for score, i in zip(scores[0], idxs[0]):
         r = chunks_df.iloc[int(i)]
+        docid = r["doc_id"]
+
+        
+        if docid not in doc_best or score > doc_best[docid]["score"]:
+            doc_best[docid] = {
+                "doc_id": docid,
+                "score": float(score),
+                "chunk_id": r["chunk_id"],
+                "content": r["chunk_text"],
+            }
+
+    
+    ranked_docs = sorted(
+        doc_best.values(),
+        key=lambda x: x["score"],
+        reverse=True
+    )[:k]
+
+    
+    rows = []
+    for rank, d in enumerate(ranked_docs, start=1):
         rows.append({
             "rank": rank,
-            "score": float(score),
-            "doc_id": r["doc_id"],
-            "chunk_id": r["chunk_id"],
-            "content": r["chunk_text"],  
+            "score": d["score"],
+            "doc_id": d["doc_id"],
+            "chunk_id": d["chunk_id"],
+            "content": d["content"],
         })
-    return rows
 
+    return rows
 
 for k in (20, 30, 50):
     out_rows = []
