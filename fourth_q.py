@@ -80,7 +80,7 @@ for k in (20, 30, 50):
 
     out_df = pd.DataFrame(out_rows).sort_values(["query_id", "rank"], ascending=[True, True])
 
-    # 1) CSV όπως το θες
+    
     cols = ["query_id", "rank", "doc_id", "content"]
     if KEEP_QUERY_TEXT:
         cols.append("query_text")
